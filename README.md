@@ -1,0 +1,41 @@
+# HoopStar.ai — Android
+
+אפליקציית מאמן שהופכת סרטון משחק כדורסל לרילי היילייטים אישיים לכל שחקן,
+ישירות מהטלפון. ה-backend (FastAPI) קיים ורץ; זהו קליינט ה-Android בלבד.
+
+## סטאק
+Kotlin · Jetpack Compose + Material 3 · MVVM + Clean Architecture · Hilt ·
+Retrofit/OkHttp/Moshi · Coil · Media3 (ExoPlayer) · EncryptedSharedPreferences ·
+Navigation-Compose. Min SDK 26.
+
+## הגדרת כתובת ה-backend
+ה-BASE_URL מוגדר ב-`app/build.gradle.kts` תחת `defaultConfig`:
+
+    buildConfigField("String", "BASE_URL", "\"https://thrift-fraying-plentiful.ngrok-free.dev/\"")
+
+למעבר ל-production: שנה רק את הערך הזה ל-Sync מחדש. שום קוד אחר לא תלוי בכתובת.
+
+## הרצה
+1. פתח ב-Android Studio, Sync Gradle.
+2. Build → Rebuild Project (אם KSP/Hilt מתעקש אחרי הוספות — Clean + Rebuild).
+3. Run על אמולטור/מכשיר עם Android 8.0+.
+
+## פרטי טסט
+מאמן בדיקה (בעלים של קבוצה, אפשר לבדוק כתיבה מיד):
+- email: android.tester@starhoop.ai
+- password: androidtest123
+- coach_id 16, team_id 15 "Android Test Team", שחקנים #7 (44), #12 (45)
+
+משחק מעובד קיים (לבדיקת מיפוי/היילייטים בלי להמתין):
+- team_id 13 "Bremen", job_id 22 (completed)
+- שחקנים עם קליפים: 39, 40, 36 · שחקן ללא קליפים (מקרה 422): 42
+
+## זרימת המשתמש
+התחברות → קבוצות → סגל → העלאת משחק → מעקב עיבוד → מיפוי שחקנים →
+בחירת שחקן → ייצור ריל (extract → compose) → נגן ExoPlayer + הורדה.
+
+## הערות
+- ה-backend עולה דרך ngrok tunnel; אם /docs לא נגיש — ה-tunnel למטה, לא באג באפליקציה.
+- אין refresh token: כש-JWT פג (30 יום), פשוט מתחברים שוב.
+- extract/compose סינכרוניים ואיטיים (דקות) — מכוסה ע"י readTimeout של 1200s.
+- כל בקשה שולחת `ngrok-skip-browser-warning: true`, כולל ExoPlayer.
