@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.starhoop.hoopstar.core.DataResult
 import com.starhoop.hoopstar.core.UiState
+import com.starhoop.hoopstar.data.local.db.HiddenJobEntity
+import com.starhoop.hoopstar.data.local.db.HoopStarDao
 import com.starhoop.hoopstar.domain.model.Job
 import com.starhoop.hoopstar.domain.usecase.ListJobsUseCase
 import com.starhoop.hoopstar.domain.usecase.UploadVideoUseCase
@@ -22,14 +24,16 @@ data class VideosUiState(
     val selectedFileName: String? = null,
     val selectedFileUri: String? = null,
     val uploadError: String? = null,
-    val newJobId: Int? = null // אירוע ניווט אחרי העלאה
+    val newJobId: Int? = null,
+    val confirmDelete: Job? = null
 )
 
 @HiltViewModel
 class VideosViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val listJobs: ListJobsUseCase,
-    private val uploadVideo: UploadVideoUseCase
+    private val uploadVideo: UploadVideoUseCase,
+    private val dao: HoopStarDao
 ) : ViewModel() {
 
     val teamId: Int = savedStateHandle.get<Int>("teamId") ?: -1
@@ -45,9 +49,13 @@ class VideosViewModel @Inject constructor(
         }
         viewModelScope.launch {
             when (val r = listJobs(teamId)) {
-                is DataResult.Success -> _state.update {
-                    it.copy(jobs = if (r.data.isEmpty()) UiState.Empty("עדיין אין משחקים")
-                    else UiState.Success(r.data))
+                is DataResult.Success -> {
+                    val hidden = dao.hiddenJobIds().toSet()
+                    val visible = r.data.filter { it.jobId !in hidden }
+                    _state.update {
+                        it.copy(jobs = if (visible.isEmpty()) UiState.Empty("עדיין אין משחקים")
+                        else UiState.Success(visible))
+                    }
                 }
                 is DataResult.Error -> _state.update { it.copy(jobs = UiState.Error(r.message, r.code)) }
             }
@@ -79,4 +87,17 @@ class VideosViewModel @Inject constructor(
     }
 
     fun consumeNavigation() = _state.update { it.copy(newJobId = null) }
+
+    // --- מחיקת משחק (הסתרה מקומית) ---
+    fun requestDelete(job: Job) = _state.update { it.copy(confirmDelete = job) }
+    fun cancelDelete() = _state.update { it.copy(confirmDelete = null) }
+
+    fun confirmDelete() {
+        val job = _state.value.confirmDelete ?: return
+        _state.update { it.copy(confirmDelete = null) }
+        viewModelScope.launch {
+            dao.hideJob(HiddenJobEntity(jobId = job.jobId))
+            loadJobs()
+        }
+    }
 }

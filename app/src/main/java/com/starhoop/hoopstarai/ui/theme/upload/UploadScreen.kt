@@ -16,14 +16,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.SportsBasketball
 import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,6 +34,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,7 +54,6 @@ import com.starhoop.hoopstar.domain.model.JobStatus
 import com.starhoop.hoopstar.ui.components.EmptyState
 import com.starhoop.hoopstar.ui.components.ErrorState
 import com.starhoop.hoopstar.ui.components.HoopPrimaryButton
-import com.starhoop.hoopstar.ui.components.ListSkeleton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,14 +79,14 @@ fun UploadScreen(
 
     Scaffold(
         topBar = {
-            androidx.compose.material3.TopAppBar(
+            TopAppBar(
                 title = { Text("Games", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
@@ -90,7 +95,6 @@ fun UploadScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            // אזור העלאה
             UploadBox(
                 fileName = state.selectedFileName,
                 uploading = state.uploading,
@@ -109,7 +113,9 @@ fun UploadScreen(
 
             Box(Modifier.fillMaxSize()) {
                 when (val s = state.jobs) {
-                    is UiState.Loading -> ListSkeleton(rows = 4, rowHeight = 64.dp)
+                    is UiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
                     is UiState.Empty -> EmptyState(
                         icon = Icons.Default.SportsBasketball,
                         title = "No games yet",
@@ -121,12 +127,33 @@ fun UploadScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(s.data, key = { it.jobId }) { job ->
-                            JobRow(job) { onOpenJob(job.jobId) }
+                            JobRow(
+                                job = job,
+                                onClick = { onOpenJob(job.jobId) },
+                                onDelete = { viewModel.requestDelete(job) }
+                            )
                         }
                     }
                 }
             }
         }
+    }
+
+    // אישור מחיקת משחק
+    state.confirmDelete?.let { job ->
+        AlertDialog(
+            onDismissRequest = viewModel::cancelDelete,
+            icon = { Icon(Icons.Default.Delete, contentDescription = null,
+                tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Remove Game") },
+            text = { Text("Remove \"${job.sourceFilename ?: "Game #${job.jobId}"}\" from your history? This hides it on this device — the job stays on the server.") },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmDelete) {
+                    Text("Remove", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = viewModel::cancelDelete) { Text("Cancel") } }
+        )
     }
 }
 
@@ -195,14 +222,14 @@ private fun UploadBox(
 }
 
 @Composable
-private fun JobRow(job: Job, onClick: () -> Unit) {
+private fun JobRow(job: Job, onClick: () -> Unit, onDelete: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick)
-            .padding(14.dp),
+            .padding(start = 14.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
@@ -210,10 +237,14 @@ private fun JobRow(job: Job, onClick: () -> Unit) {
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
             Spacer(Modifier.height(4.dp))
-            Text("ID  #${job.jobId}", style = MaterialTheme.typography.bodyMedium,
+            Text("ID #${job.jobId}", style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         StatusPill(job.status)
+        IconButton(onClick = onDelete) {
+            Icon(Icons.Default.Delete, contentDescription = "Delete game",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

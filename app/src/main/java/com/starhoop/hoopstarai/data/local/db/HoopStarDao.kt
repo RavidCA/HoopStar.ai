@@ -18,7 +18,14 @@ interface HoopStarDao {
     @Query("SELECT teamId FROM hidden_teams WHERE coachId = :coachId")
     fun hiddenTeamIds(coachId: Int): Flow<List<Int>>
 
-    // --- רילים שמורים (חלק ב') ---
+    // --- משחקים (jobs) מוסתרים ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun hideJob(job: HiddenJobEntity)
+
+    @Query("SELECT jobId FROM hidden_jobs")
+    suspend fun hiddenJobIds(): List<Int>
+
+    // --- רילים שמורים ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveReel(reel: SavedReelEntity)
 
