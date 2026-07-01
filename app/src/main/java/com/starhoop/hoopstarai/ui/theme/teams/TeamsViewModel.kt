@@ -7,6 +7,8 @@ import com.starhoop.hoopstar.core.TeamColorPalette
 import com.starhoop.hoopstar.core.TeamLogos
 import com.starhoop.hoopstar.core.UiState
 import com.starhoop.hoopstar.data.local.TokenStore
+import com.starhoop.hoopstar.data.local.db.HiddenTeamEntity
+import com.starhoop.hoopstar.data.local.db.HoopStarDao
 import com.starhoop.hoopstar.domain.model.Team
 import com.starhoop.hoopstar.domain.repository.AuthRepository
 import com.starhoop.hoopstar.domain.repository.TeamsRepository
@@ -15,6 +17,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -32,7 +35,8 @@ data class TeamsUiState(
     val teams: UiState<List<Team>> = UiState.Loading,
     val coachName: String = "",
     val showCreate: Boolean = false,
-    val create: CreateTeamForm = CreateTeamForm()
+    val create: CreateTeamForm = CreateTeamForm(),
+    val confirmHide: Team? = null
 )
 
 @HiltViewModel
@@ -40,7 +44,8 @@ class TeamsViewModel @Inject constructor(
     private val getMyTeams: GetMyTeamsUseCase,
     private val teamsRepository: TeamsRepository,
     private val authRepository: AuthRepository,
-    private val tokenStore: TokenStore
+    private val tokenStore: TokenStore,
+    private val dao: HoopStarDao
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TeamsUiState(coachName = tokenStore.getDisplayName() ?: ""))
@@ -52,9 +57,14 @@ class TeamsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             when (val r = getMyTeams()) {
-                is DataResult.Success -> _state.update {
-                    it.copy(teams = if (r.data.isEmpty())
-                        UiState.Empty("עדיין אין קבוצות") else UiState.Success(r.data))
+                is DataResult.Success -> {
+                    // מסננים קבוצות מוסתרות
+                    val hidden = dao.hiddenTeamIds(tokenStore.getCoachId()).first().toSet()
+                    val visible = r.data.filter { it.teamId !in hidden }
+                    _state.update {
+                        it.copy(teams = if (visible.isEmpty())
+                            UiState.Empty("No groups yet") else UiState.Success(visible))
+                    }
                 }
                 is DataResult.Error -> _state.update { it.copy(teams = UiState.Error(r.message, r.code)) }
             }
@@ -72,7 +82,7 @@ class TeamsViewModel @Inject constructor(
     fun submitCreate() {
         val form = _state.value.create
         if (form.name.isBlank()) {
-            _state.update { it.copy(create = it.create.copy(error = "יש להזין שם קבוצה.")) }
+            _state.update { it.copy(create = it.create.copy(error = "A group name must be entered.")) }
             return
         }
         _state.update { it.copy(create = it.create.copy(loading = true, error = null)) }
@@ -92,6 +102,19 @@ class TeamsViewModel @Inject constructor(
                     it.copy(create = it.create.copy(loading = false, error = r.message))
                 }
             }
+        }
+    }
+
+    // --- הסרת קבוצה (הסתרה מקומית) ---
+    fun requestHide(team: Team) = _state.update { it.copy(confirmHide = team) }
+    fun cancelHide() = _state.update { it.copy(confirmHide = null) }
+
+    fun confirmHide() {
+        val team = _state.value.confirmHide ?: return
+        _state.update { it.copy(confirmHide = null) }
+        viewModelScope.launch {
+            dao.hideTeam(HiddenTeamEntity(teamId = team.teamId, coachId = tokenStore.getCoachId()))
+            load()
         }
     }
 

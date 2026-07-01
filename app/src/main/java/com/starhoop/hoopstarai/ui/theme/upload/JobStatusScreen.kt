@@ -54,10 +54,10 @@ fun JobStatusScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("עיבוד משחק", style = MaterialTheme.typography.titleLarge) },
+                title = { Text("Processing", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "חזרה")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -131,7 +131,7 @@ private fun JobStatusContent(
         Spacer(Modifier.height(20.dp))
         StatusPill(job.status)
         Spacer(Modifier.height(8.dp))
-        Text(job.sourceFilename ?: "משחק #${job.jobId}",
+        Text(job.sourceFilename ?: "Game #${job.jobId}",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface)
 
@@ -139,9 +139,9 @@ private fun JobStatusContent(
 
         // מטריקות
         if (job.status == JobStatus.PROCESSING || job.status == JobStatus.PENDING || job.status == JobStatus.COMPLETED) {
-            StatRow("פריימים", "${job.processedFrames ?: 0} / ${job.totalFrames ?: "?"}")
-            StatRow("קצב עיבוד", job.throughputFps?.let { "%.1f FPS".format(it) } ?: "—")
-            StatRow("משך עיבוד", formatDuration(job.processingDurationSec))
+            StatRow("Frames", "${job.processedFrames ?: 0} / ${job.totalFrames ?: "?"}")
+            StatRow("Throughput", job.throughputFps?.let { "%.1f FPS".format(it) } ?: "—")
+            StatRow("Duration", formatDuration(job.processingDurationSec))
         }
         if (job.status == JobStatus.FAILED && job.errorMessage != null) {
             Spacer(Modifier.height(8.dp))
@@ -157,10 +157,10 @@ private fun JobStatusContent(
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 enabled = !canceling
             ) {
-                Text(if (canceling) "מבטל..." else "בטל עיבוד")
+                Text(if (canceling) "Canceling..." else "Cancel Processing")
             }
             JobStatus.COMPLETED -> com.starhoop.hoopstar.ui.components.HoopPrimaryButton(
-                text = "המשך למיפוי שחקנים",
+                text = "Continue to Player Mapping",
                 onClick = { onGoToMapping(job.jobId, job.teamId ?: -1) }
             )
             else -> Unit

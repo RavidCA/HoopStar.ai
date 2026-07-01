@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -54,19 +55,19 @@ fun LoginScreen(
         Text(".ai", fontWeight = FontWeight.Black, fontSize = 24.sp,
             color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(8.dp))
-        Text("התחברות מאמן", style = MaterialTheme.typography.bodyLarge,
+        Text("Coach Login", style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(36.dp))
 
         HoopTextField(
             value = state.email, onValueChange = viewModel::onEmailChange,
-            label = "אימייל", keyboardType = KeyboardType.Email,
+            label = "Email", keyboardType = KeyboardType.Email,
             isError = state.error != null
         )
         Spacer(Modifier.height(14.dp))
         HoopTextField(
             value = state.password, onValueChange = viewModel::onPasswordChange,
-            label = "סיסמה", isPassword = true, isError = state.error != null
+            label = "Password", isPassword = true, isError = state.error != null
         )
 
         if (state.error != null) {
@@ -76,13 +77,13 @@ fun LoginScreen(
 
         Spacer(Modifier.height(24.dp))
         HoopPrimaryButton(
-            text = "התחבר",
+            text = "Log In",
             onClick = viewModel::login,
             loading = state.loading
         )
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = onGoToRegister, enabled = !state.loading) {
-            Text("אין לך חשבון? הרשמה", color = MaterialTheme.colorScheme.primary)
+            Text("Don't have an account? Sign up", color = MaterialTheme.colorScheme.primary)
         }
     }
 }

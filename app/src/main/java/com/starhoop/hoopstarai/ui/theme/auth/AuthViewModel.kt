@@ -64,15 +64,15 @@ class AuthViewModel @Inject constructor(
     private fun validate(s: AuthFormState, requireName: Boolean): Boolean {
         when {
             s.email.isBlank() || !s.email.contains("@") -> {
-                _state.update { it.copy(error = "כתובת אימייל לא תקינה.") }
+                _state.update { it.copy(error = "Invalid email address.") }
                 return false
             }
             s.password.length < 6 -> {
-                _state.update { it.copy(error = "הסיסמה חייבת להיות לפחות 6 תווים.") }
+                _state.update { it.copy(error = "Password must be at least 6 characters.") }
                 return false
             }
             requireName && s.displayName.isBlank() -> {
-                _state.update { it.copy(error = "יש להזין שם תצוגה.") }
+                _state.update { it.copy(error = "Please enter a display name.") }
                 return false
             }
         }

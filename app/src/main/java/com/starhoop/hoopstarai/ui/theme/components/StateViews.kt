@@ -51,6 +51,6 @@ fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifi
         Text(message, style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
         Spacer(Modifier.height(18.dp))
-        OutlinedButton(onClick = onRetry) { Text("נסה שוב") }
+        OutlinedButton(onClick = onRetry) { Text("Retry") }
     }
 }

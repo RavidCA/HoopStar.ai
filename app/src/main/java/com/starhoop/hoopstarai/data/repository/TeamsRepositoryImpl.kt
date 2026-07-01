@@ -34,14 +34,14 @@ class TeamsRepositoryImpl @Inject constructor(
     )
 
     override suspend fun getMyTeams(): DataResult<List<Team>> = withContext(Dispatchers.IO) {
-        when (val r = safeApiCall("טעינת הקבוצות נכשלה.") { api.getMyTeams() }) {
+        when (val r = safeApiCall("Failed to load teams.") { api.getMyTeams() }) {
             is DataResult.Success -> DataResult.Success(r.data.map { it.toDomain() })
             is DataResult.Error -> r
         }
     }
 
     override suspend fun getTeam(teamId: Int): DataResult<Team> = withContext(Dispatchers.IO) {
-        when (val r = safeApiCall("טעינת הקבוצה נכשלה.") { api.getTeam(teamId) }) {
+        when (val r = safeApiCall("Failed to load teams.") { api.getTeam(teamId) }) {
             is DataResult.Success -> DataResult.Success(r.data.toDomain())
             is DataResult.Error -> r
         }
@@ -50,7 +50,7 @@ class TeamsRepositoryImpl @Inject constructor(
     override suspend fun createTeam(
         name: String, season: String, color: String, logoUrl: String?
     ): DataResult<Team> = withContext(Dispatchers.IO) {
-        when (val r = safeApiCall("יצירת הקבוצה נכשלה.") {
+        when (val r = safeApiCall("Failed to Create teams.") {
             api.createTeam(CreateTeamRequest(name = name, season = season, color = color, logoUrl = logoUrl))
         }) {
             is DataResult.Success -> DataResult.Success(r.data.toDomain())
@@ -61,7 +61,7 @@ class TeamsRepositoryImpl @Inject constructor(
     override suspend fun addPlayer(
         teamId: Int, jersey: Int, fullName: String, birthYear: Int?, photoUrl: String?
     ): DataResult<Player> = withContext(Dispatchers.IO) {
-        when (val r = safeApiCall("הוספת השחקן נכשלה.") {
+        when (val r = safeApiCall("Adding the player failed.") {
             api.addPlayer(teamId, CreatePlayerRequest(jersey, fullName, photoUrl, birthYear))
         }) {
             is DataResult.Success -> DataResult.Success(r.data.toDomain())
@@ -72,7 +72,7 @@ class TeamsRepositoryImpl @Inject constructor(
     override suspend fun updatePlayer(
         teamId: Int, playerId: Int, jersey: Int?, fullName: String?, birthYear: Int?, photoUrl: String?
     ): DataResult<Player> = withContext(Dispatchers.IO) {
-        when (val r = safeApiCall("עדכון השחקן נכשל.") {
+        when (val r = safeApiCall("Player update failed.") {
             api.updatePlayer(teamId, playerId, UpdatePlayerRequest(jersey, fullName, photoUrl, birthYear))
         }) {
             is DataResult.Success -> DataResult.Success(r.data.toDomain())
@@ -82,6 +82,6 @@ class TeamsRepositoryImpl @Inject constructor(
 
     override suspend fun deletePlayer(teamId: Int, playerId: Int): DataResult<Unit> =
         withContext(Dispatchers.IO) {
-            safeApiCall("מחיקת השחקן נכשלה.") { api.deletePlayer(teamId, playerId) }
+            safeApiCall("Deleting the player failed.") { api.deletePlayer(teamId, playerId) }
         }
 }

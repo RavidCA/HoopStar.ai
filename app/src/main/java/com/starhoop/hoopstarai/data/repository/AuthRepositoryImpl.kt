@@ -21,7 +21,7 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun login(email: String, password: String): DataResult<Coach> =
         withContext(Dispatchers.IO) {
-            when (val res = safeApiCall("ההתחברות נכשלה.") { api.login(LoginRequest(email, password)) }) {
+            when (val res = safeApiCall("Login failed.") { api.login(LoginRequest(email, password)) }) {
                 is DataResult.Success -> {
                     val d = res.data
                     tokenStore.saveToken(d.accessToken)
@@ -39,7 +39,7 @@ class AuthRepositoryImpl @Inject constructor(
         password: String,
         displayName: String
     ): DataResult<Coach> = withContext(Dispatchers.IO) {
-        when (val res = safeApiCall("ההרשמה נכשלה.") {
+        when (val res = safeApiCall("Registration failed.") {
             api.register(RegisterRequest(email, password, displayName))
         }) {
             is DataResult.Success -> {
@@ -53,7 +53,7 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun fetchMe(): DataResult<Coach> = withContext(Dispatchers.IO) {
-        when (val res = safeApiCall("טעינת הפרופיל נכשלה.") { api.me() }) {
+        when (val res = safeApiCall("Failed to load profile.") { api.me() }) {
             is DataResult.Success -> {
                 val d = res.data
                 tokenStore.saveCoach(d.coachId, d.displayName, d.email)

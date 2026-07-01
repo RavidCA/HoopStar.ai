@@ -52,7 +52,7 @@ class MappingRepositoryImpl @Inject constructor(
 
     override suspend fun autoMap(jobId: Int, teamId: Int): DataResult<MappingResult> =
         withContext(Dispatchers.IO) {
-            when (val r = safeApiCall("מיפוי השחקנים נכשל.") { api.autoMap(jobId, teamId) }) {
+            when (val r = safeApiCall("Player mapping failed.") { api.autoMap(jobId, teamId) }) {
                 is DataResult.Success -> DataResult.Success(r.data.toDomain())
                 is DataResult.Error -> r
             }

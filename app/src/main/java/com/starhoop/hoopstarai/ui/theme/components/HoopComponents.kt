@@ -61,7 +61,7 @@ fun HoopTextField(
                     Icon(
                         imageVector = if (visible) Icons.Default.VisibilityOff
                         else Icons.Default.Visibility,
-                        contentDescription = if (visible) "הסתר סיסמה" else "הצג סיסמה"
+                        contentDescription = if (visible) "Hide password" else "Show password"
                     )
                 }
             }

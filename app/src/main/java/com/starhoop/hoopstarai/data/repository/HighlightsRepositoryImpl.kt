@@ -54,14 +54,14 @@ class HighlightsRepositoryImpl @Inject constructor(
     override suspend fun extract(jobId: Int, playerId: Int?): DataResult<ExtractedReel> =
         withContext(Dispatchers.IO) {
             // source="annotated" כברירת מחדל (יש מסגרות זיהוי על השחקנים)
-            when (val r = safeApiCall("יצירת ההיילייטים נכשלה.") {
+            when (val r = safeApiCall("Failed to generate highlights.") {
                 api.extract(jobId, playerId, source = "annotated")
             }) {
                 is DataResult.Success -> {
                     val reel = r.data.toDomain()
                     if (reel.reelId == -1) {
                         // מקרה נדיר: 200 אבל בלי reel_id
-                        DataResult.Error("לא נמצאו היילייטים לשחקן הזה.", 422)
+                        DataResult.Error("No highlights found for this player.", 422)
                     } else DataResult.Success(reel)
                 }
                 is DataResult.Error -> r // כולל 422 = אין קליפים, מטופל ב-ViewModel
@@ -73,7 +73,7 @@ class HighlightsRepositoryImpl @Inject constructor(
         aspectRatio: String?, musicTrack: String?,
         includeIntro: Boolean, includeStats: Boolean, includeWatermark: Boolean
     ): DataResult<ComposedReel> = withContext(Dispatchers.IO) {
-        when (val r = safeApiCall("הרכבת הריל נכשלה.") {
+        when (val r = safeApiCall("The rail train failed.") {
             api.compose(jobId, reelId, aspectRatio, musicTrack, includeIntro, includeStats, includeWatermark)
         }) {
             is DataResult.Success -> DataResult.Success(r.data.toDomain())

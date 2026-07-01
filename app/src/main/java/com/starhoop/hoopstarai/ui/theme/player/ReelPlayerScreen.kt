@@ -66,15 +66,15 @@ fun ReelPlayerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("הריל של $playerName", style = MaterialTheme.typography.titleLarge) },
+                title = { Text("$playerName's Reel", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "חזרה")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = { onDownload(reelUrl) }) {
-                        Icon(Icons.Default.Download, contentDescription = "הורדה")
+                        Icon(Icons.Default.Download, contentDescription = "Download")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

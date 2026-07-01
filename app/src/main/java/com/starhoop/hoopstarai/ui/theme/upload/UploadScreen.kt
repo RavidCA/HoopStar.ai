@@ -75,10 +75,10 @@ fun UploadScreen(
     Scaffold(
         topBar = {
             androidx.compose.material3.TopAppBar(
-                title = { Text("משחקים", style = MaterialTheme.typography.titleLarge) },
+                title = { Text("Games", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "חזרה")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
@@ -101,7 +101,7 @@ fun UploadScreen(
             )
 
             Text(
-                "היסטוריית משחקים",
+                "Game History",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 4.dp)
@@ -112,8 +112,8 @@ fun UploadScreen(
                     is UiState.Loading -> ListSkeleton(rows = 4, rowHeight = 64.dp)
                     is UiState.Empty -> EmptyState(
                         icon = Icons.Default.SportsBasketball,
-                        title = "אין משחקים עדיין",
-                        subtitle = "העלה סרטון משחק כדי להתחיל בעיבוד."
+                        title = "No games yet",
+                        subtitle = "Upload a game video to start processing."
                     )
                     is UiState.Error -> ErrorState(s.message, onRetry = viewModel::loadJobs)
                     is UiState.Success -> LazyColumn(
@@ -159,13 +159,13 @@ private fun UploadBox(
                 )
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    fileName ?: "בחר סרטון משחק (MP4 / MOV / AVI / MKV)",
+                    fileName ?: "Select a game video (MP4 / MOV / AVI / MKV)",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
                 if (fileName == null) {
-                    Text("עד 1.5GB", style = MaterialTheme.typography.bodyMedium,
+                    Text("Up to 1.5GB", style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -180,13 +180,13 @@ private fun UploadBox(
         if (fileName != null) {
             Spacer(Modifier.height(14.dp))
             HoopPrimaryButton(
-                text = if (uploading) "מעלה..." else "העלה והתחל עיבוד",
+                text = if (uploading) "Uploading..." else "Upload & Process",
                 onClick = onUpload,
                 loading = uploading
             )
             if (!uploading) {
                 Spacer(Modifier.height(6.dp))
-                Text("בחר סרטון אחר", style = MaterialTheme.typography.bodyMedium,
+                Text("Choose another video", style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { onClear() }.padding(4.dp))
             }
@@ -206,11 +206,11 @@ private fun JobRow(job: Job, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
-            Text(job.sourceFilename ?: "משחק #${job.jobId}",
+            Text(job.sourceFilename ?: "Game #${job.jobId}",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
             Spacer(Modifier.height(4.dp))
-            Text("מזהה #${job.jobId}", style = MaterialTheme.typography.bodyMedium,
+            Text("ID  #${job.jobId}", style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         StatusPill(job.status)

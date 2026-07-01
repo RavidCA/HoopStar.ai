@@ -50,10 +50,10 @@ fun RegisterScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("יצירת חשבון") },
+                title = { Text("Create Account") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "חזרה")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -75,18 +75,18 @@ fun RegisterScreen(
         ) {
             HoopTextField(
                 value = state.displayName, onValueChange = viewModel::onDisplayNameChange,
-                label = "שם תצוגה", isError = state.error != null
+                label = "Display Name", isError = state.error != null
             )
             Spacer(Modifier.height(14.dp))
             HoopTextField(
                 value = state.email, onValueChange = viewModel::onEmailChange,
-                label = "אימייל", keyboardType = KeyboardType.Email,
+                label = "Email", keyboardType = KeyboardType.Email,
                 isError = state.error != null
             )
             Spacer(Modifier.height(14.dp))
             HoopTextField(
                 value = state.password, onValueChange = viewModel::onPasswordChange,
-                label = "סיסמה (לפחות 6 תווים)", isPassword = true,
+                label = "Password (min 6 characters)", isPassword = true,
                 isError = state.error != null
             )
 
@@ -97,7 +97,7 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(24.dp))
             HoopPrimaryButton(
-                text = "הרשמה",
+                text = "Sign Up",
                 onClick = viewModel::register,
                 loading = state.loading
             )

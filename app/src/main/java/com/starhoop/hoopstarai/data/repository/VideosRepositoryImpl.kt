@@ -50,10 +50,10 @@ class VideosRepositoryImpl @Inject constructor(
             val tempFile = try {
                 copyUriToTemp(Uri.parse(fileUri))
             } catch (e: Exception) {
-                return@withContext DataResult.Error("לא ניתן לקרוא את קובץ הוידאו.")
+                return@withContext DataResult.Error("Could not read the video file.")
             }
 
-            val result = safeApiCall<UploadResponse>("ההעלאה נכשלה.") {
+            val result = safeApiCall<UploadResponse>("Upload failed.") {
                 val mediaType = "video/*".toMediaTypeOrNull()
                 val filePart = MultipartBody.Part.createFormData(
                     name = "file",
@@ -72,21 +72,21 @@ class VideosRepositoryImpl @Inject constructor(
         }
 
     override suspend fun getJob(jobId: Int): DataResult<Job> = withContext(Dispatchers.IO) {
-        when (val r = safeApiCall("טעינת הסטטוס נכשלה.") { api.getJob(jobId) }) {
+        when (val r = safeApiCall("Failed to load status.") { api.getJob(jobId) }) {
             is DataResult.Success -> DataResult.Success(r.data.toDomain())
             is DataResult.Error -> r
         }
     }
 
     override suspend fun listJobs(teamId: Int?): DataResult<List<Job>> = withContext(Dispatchers.IO) {
-        when (val r = safeApiCall("טעינת המשחקים נכשלה.") { api.listJobs(teamId) }) {
+        when (val r = safeApiCall("Loading games failed.") { api.listJobs(teamId) }) {
             is DataResult.Success -> DataResult.Success(r.data.map { it.toDomain() })
             is DataResult.Error -> r
         }
     }
 
     override suspend fun cancelJob(jobId: Int): DataResult<Job> = withContext(Dispatchers.IO) {
-        when (val r = safeApiCall("הביטול נכשל.") { api.cancelJob(jobId) }) {
+        when (val r = safeApiCall("Cancellation failed.") { api.cancelJob(jobId) }) {
             is DataResult.Success -> getJob(jobId) // מביא את הסטטוס המעודכן המלא
             is DataResult.Error -> r
         }

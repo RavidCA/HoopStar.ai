@@ -1,14 +1,13 @@
 package com.starhoop.hoopstar.ui.teams
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -58,6 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.starhoop.hoopstar.core.TeamLogos
 import com.starhoop.hoopstar.core.UiState
 import com.starhoop.hoopstar.core.parseHexColor
 import com.starhoop.hoopstar.core.readableTextOn
@@ -74,6 +74,7 @@ import com.starhoop.hoopstar.ui.components.PlayerAvatar
 fun RosterScreen(
     onBack: () -> Unit,
     onOpenGames: (Int) -> Unit,
+    onOpenPlayer: (playerId: Int, playerName: String) -> Unit,
     viewModel: RosterViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -91,18 +92,18 @@ fun RosterScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                com.starhoop.hoopstar.core.TeamLogos.iconFor(team?.logoUrl),
+                                TeamLogos.iconFor(team?.logoUrl),
                                 contentDescription = null, tint = accent,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
                         Spacer(Modifier.width(10.dp))
-                        Text(team?.name ?: "סגל", style = MaterialTheme.typography.titleLarge)
+                        Text(team?.name ?: "Roster", style = MaterialTheme.typography.titleLarge)
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "חזרה")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -117,13 +118,12 @@ fun RosterScreen(
                     onClick = viewModel::openAdd,
                     containerColor = accent,
                     contentColor = readableTextOn(accent)
-                ) { Icon(Icons.Default.Add, contentDescription = "הוסף שחקן") }
+                ) { Icon(Icons.Default.Add, contentDescription = "Add player") }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            // כפתור "משחקים"
             team?.let {
                 Button(
                     onClick = { onOpenGames(it.teamId) },
@@ -136,7 +136,7 @@ fun RosterScreen(
                 ) {
                     Icon(Icons.Default.SportsBasketball, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("משחקים והיילייטים", style = MaterialTheme.typography.labelLarge)
+                    Text("Games & Highlights", style = MaterialTheme.typography.labelLarge)
                 }
             }
 
@@ -151,9 +151,9 @@ fun RosterScreen(
                         if (s.data.players.isEmpty()) {
                             EmptyState(
                                 icon = Icons.Default.PersonOutline,
-                                title = "אין שחקנים בסגל",
-                                subtitle = if (state.isOwner) "לחץ על + כדי להוסיף שחקן ראשון."
-                                else "לקבוצה הזו עדיין אין שחקנים."
+                                title = "No players in roster",
+                                subtitle = if (state.isOwner) "Tap + to add your first player."
+                                else "This team has no players yet."
                             )
                         } else {
                             LazyColumn(
@@ -162,6 +162,7 @@ fun RosterScreen(
                             ) {
                                 items(s.data.players, key = { it.playerId }) { player ->
                                     PlayerRow(player, accent, state.isOwner,
+                                        onClick = { onOpenPlayer(player.playerId, player.fullName) },
                                         onEdit = { viewModel.openEdit(player) },
                                         onDelete = { viewModel.requestDelete(player) })
                                 }
@@ -187,14 +188,14 @@ fun RosterScreen(
     state.confirmDelete?.let { player ->
         AlertDialog(
             onDismissRequest = viewModel::cancelDelete,
-            title = { Text("מחיקת שחקן") },
-            text = { Text("למחוק את ${player.fullName} (#${player.jerseyNumber})?") },
+            title = { Text("Delete Player") },
+            text = { Text("Delete ${player.fullName} (#${player.jerseyNumber})?") },
             confirmButton = {
                 TextButton(onClick = viewModel::confirmDelete) {
-                    Text("מחק", color = MaterialTheme.colorScheme.error)
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = viewModel::cancelDelete) { Text("ביטול") } }
+            dismissButton = { TextButton(onClick = viewModel::cancelDelete) { Text("Cancel") } }
         )
     }
 }
@@ -202,7 +203,7 @@ fun RosterScreen(
 @Composable
 private fun PlayerRow(
     player: Player, accent: Color, isOwner: Boolean,
-    onEdit: () -> Unit, onDelete: () -> Unit
+    onClick: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     Row(
@@ -210,6 +211,7 @@ private fun PlayerRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -221,23 +223,23 @@ private fun PlayerRow(
             Text(player.fullName, style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface)
             if (player.birthYear != null) {
-                Text("שנתון ${player.birthYear}", style = MaterialTheme.typography.bodyMedium,
+                Text("Born ${player.birthYear}", style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         if (isOwner) {
             Box {
                 IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "אפשרויות")
+                    Icon(Icons.Default.MoreVert, contentDescription = "Options")
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
-                        text = { Text("עריכה") },
+                        text = { Text("Edit") },
                         leadingIcon = { Icon(Icons.Default.Edit, null) },
                         onClick = { menuOpen = false; onEdit() }
                     )
                     DropdownMenuItem(
-                        text = { Text("מחיקה") },
+                        text = { Text("Delete") },
                         leadingIcon = { Icon(Icons.Default.Delete, null) },
                         onClick = { menuOpen = false; onDelete() }
                     )
@@ -251,20 +253,20 @@ private fun PlayerRow(
 private fun PlayerEditorSheet(editor: PlayerEditorForm, viewModel: RosterViewModel) {
     Column(Modifier.fillMaxWidth().padding(24.dp)) {
         Text(
-            if (editor.isEdit) "עריכת שחקן" else "שחקן חדש",
+            if (editor.isEdit) "Edit Player" else "New Player",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(Modifier.height(20.dp))
-        HoopTextField(editor.jersey, viewModel::onJersey, "מספר חולצה (0-99)",
+        HoopTextField(editor.jersey, viewModel::onJersey, "Jersey number (0-99)",
             keyboardType = KeyboardType.Number, isError = editor.error != null)
         Spacer(Modifier.height(14.dp))
-        HoopTextField(editor.fullName, viewModel::onName, "שם מלא", isError = editor.error != null)
+        HoopTextField(editor.fullName, viewModel::onName, "Full Name", isError = editor.error != null)
         Spacer(Modifier.height(14.dp))
-        HoopTextField(editor.birthYear, viewModel::onBirthYear, "שנת לידה (אופציונלי)",
+        HoopTextField(editor.birthYear, viewModel::onBirthYear, "Birth year (optional)",
             keyboardType = KeyboardType.Number)
         Spacer(Modifier.height(14.dp))
-        HoopTextField(editor.photoUrl, viewModel::onPhotoUrl, "קישור לתמונה (אופציונלי)")
+        HoopTextField(editor.photoUrl, viewModel::onPhotoUrl, "Photo URL (optional)")
 
         if (editor.error != null) {
             Spacer(Modifier.height(10.dp))
@@ -273,7 +275,7 @@ private fun PlayerEditorSheet(editor: PlayerEditorForm, viewModel: RosterViewMod
         }
         Spacer(Modifier.height(24.dp))
         HoopPrimaryButton(
-            if (editor.isEdit) "שמור שינויים" else "הוסף שחקן",
+            if (editor.isEdit) "Save Changes" else "Add Player",
             viewModel::submitEditor, loading = editor.loading
         )
         Spacer(Modifier.height(12.dp))

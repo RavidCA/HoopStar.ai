@@ -58,10 +58,10 @@ fun MappingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("מיפוי שחקנים", style = MaterialTheme.typography.titleLarge) },
+                title = { Text("Player Mapping", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "חזרה")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -79,12 +79,12 @@ fun MappingScreen(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.height(16.dp))
-                    Text("מזהה שחקנים בסרטון...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Detecting players in the video...", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 is UiState.Empty -> EmptyState(
                     icon = Icons.Default.PersonSearch,
-                    title = "לא זוהו שחקנים",
-                    subtitle = "ה-AI לא מצא מספרי חולצה ברורים בסרטון הזה."
+                    title = "No players detected",
+                    subtitle = "The AI couldn't find clear jersey numbers in this video."
                 )
                 is UiState.Error -> ErrorState(s.message, onRetry = viewModel::run)
                 is UiState.Success -> MappingContent(
@@ -104,14 +104,14 @@ private fun MappingContent(result: MappingResult, onContinue: () -> Unit) {
             Modifier.fillMaxWidth().padding(16.dp, 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            CountChip("גבוה", result.highCount, ratingColor(MatchRating.HIGH), Modifier.weight(1f))
-            CountChip("בינוני", result.mediumCount, ratingColor(MatchRating.MEDIUM), Modifier.weight(1f))
-            CountChip("נמוך", result.lowCount, ratingColor(MatchRating.LOW), Modifier.weight(1f))
-            CountChip("ללא", result.noMatchCount, ratingColor(MatchRating.NO_MATCH), Modifier.weight(1f))
+            CountChip("High", result.highCount, ratingColor(MatchRating.HIGH), Modifier.weight(1f))
+            CountChip("Medium", result.mediumCount, ratingColor(MatchRating.MEDIUM), Modifier.weight(1f))
+            CountChip("Low", result.lowCount, ratingColor(MatchRating.LOW), Modifier.weight(1f))
+            CountChip("None", result.noMatchCount, ratingColor(MatchRating.NO_MATCH), Modifier.weight(1f))
         }
 
         Text(
-            "ה-AI זיהה ${result.total} שחקנים בסרטון. בדוק את ההתאמות לסגל:",
+            "The AI detected ${result.total} players. Review the matches to your roster:",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp)
@@ -126,7 +126,7 @@ private fun MappingContent(result: MappingResult, onContinue: () -> Unit) {
         }
 
         HoopPrimaryButton(
-            text = "המשך להיילייטים",
+            text = "Continue to Highlights",
             onClick = onContinue,
             modifier = Modifier.padding(16.dp)
         )
@@ -172,12 +172,12 @@ private fun MappingRow(item: MappingItem) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                item.suggestedPlayerName ?: "ללא התאמה",
+                item.suggestedPlayerName ?: "No match",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            val conf = item.confidenceMean?.let { "ביטחון ${(it * 100).toInt()}%" } ?: ""
-            val frames = item.frameCount?.let { "$it פריימים" } ?: ""
+            val conf = item.confidenceMean?.let { "confidence ${(it * 100).toInt()}%" } ?: ""
+            val frames = item.frameCount?.let { "$it frames" } ?: ""
             Text(
                 listOf(conf, frames).filter { it.isNotBlank() }.joinToString("  ·  "),
                 style = MaterialTheme.typography.bodyMedium,
@@ -207,9 +207,9 @@ private fun ratingColor(rating: MatchRating): Color = when (rating) {
 }
 
 private fun ratingLabel(rating: MatchRating): String = when (rating) {
-    MatchRating.HIGH -> "גבוה"
-    MatchRating.MEDIUM -> "בינוני"
-    MatchRating.LOW -> "נמוך"
-    MatchRating.NO_MATCH -> "ללא"
+    MatchRating.HIGH -> "High"
+    MatchRating.MEDIUM -> "Medium"
+    MatchRating.LOW -> "Low"
+    MatchRating.NO_MATCH -> "None"
     MatchRating.UNKNOWN -> "?"
 }

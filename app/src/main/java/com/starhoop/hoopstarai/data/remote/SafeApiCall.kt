@@ -7,7 +7,7 @@ import retrofit2.HttpException
 import java.io.IOException
 
 suspend fun <T> safeApiCall(
-    fallbackMessage: String = "משהו השתבש, נסה שוב.",
+    fallbackMessage: String = "Something went wrong, please try again.",
     block: suspend () -> T
 ): DataResult<T> {
     return try {
@@ -18,7 +18,7 @@ suspend fun <T> safeApiCall(
         val body = e.response()?.errorBody()?.string()
         DataResult.Error(ApiErrorParser.parse(body, fallbackMessage), e.code())
     } catch (e: IOException) {
-        DataResult.Error("שגיאת רשת. בדוק את החיבור ונסה שוב.")
+        DataResult.Error("Network error. Check your connection and try again.")
     } catch (e: Exception) {
         DataResult.Error(e.message ?: fallbackMessage)
     }

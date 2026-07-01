@@ -14,6 +14,9 @@ object Routes {
     const val HIGHLIGHTS = "highlights/{jobId}/{teamId}"
     const val PLAYER = "player/{url}/{name}"
 
+    const val PLAYER_CARD = "playercard/{playerId}/{playerName}"
+    fun playerCard(playerId: Int, playerName: String) =
+        "playercard/$playerId/${android.net.Uri.encode(playerName)}"
     fun roster(teamId: Int) = "roster/$teamId"
     fun upload(teamId: Int) = "upload/$teamId"
     fun jobStatus(jobId: Int) = "job/$jobId"

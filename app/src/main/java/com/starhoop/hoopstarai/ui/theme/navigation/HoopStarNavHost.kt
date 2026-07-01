@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import com.starhoop.hoopstar.ui.playercard.PlayerCardScreen
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -30,14 +31,20 @@ fun HoopStarNavHost(
     navController: NavHostController = rememberNavController()
 ) {
     NavHost(navController = navController, startDestination = Routes.SPLASH) {
-        composable(Routes.SPLASH) {
+        composable(
+            Routes.SPLASH,
+            exitTransition = { androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(400)) }
+        ) {
             SplashScreen(
                 onLoggedIn = { navController.navigate(Routes.TEAMS) { popUpTo(Routes.SPLASH) { inclusive = true } } },
                 onLoggedOut = { navController.navigate(Routes.LOGIN) { popUpTo(Routes.SPLASH) { inclusive = true } } }
             )
         }
 
-        composable(Routes.LOGIN) {
+        composable(
+            Routes.LOGIN,
+            enterTransition = { androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(500)) }
+        ) {
             LoginScreen(
                 onLoginSuccess = { navController.navigate(Routes.TEAMS) { popUpTo(Routes.LOGIN) { inclusive = true } } },
                 onGoToRegister = { navController.navigate(Routes.REGISTER) }
@@ -52,6 +59,21 @@ fun HoopStarNavHost(
             RegisterScreen(
                 onRegisterSuccess = { navController.navigate(Routes.TEAMS) { popUpTo(Routes.LOGIN) { inclusive = true } } },
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Routes.PLAYER_CARD,
+            arguments = listOf(
+                navArgument("playerId") { type = NavType.IntType },
+                navArgument("playerName") { type = NavType.StringType }
+            ),
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(300)) },
+            popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(300)) }
+        ) {
+            PlayerCardScreen(
+                onBack = { navController.popBackStack() },
+                onPlayReel = { url, name -> navController.navigate(Routes.player(url, name)) }
             )
         }
 
@@ -70,7 +92,10 @@ fun HoopStarNavHost(
         ) {
             RosterScreen(
                 onBack = { navController.popBackStack() },
-                onOpenGames = { teamId -> navController.navigate(Routes.upload(teamId)) }
+                onOpenGames = { teamId -> navController.navigate(Routes.upload(teamId)) },
+                onOpenPlayer = { playerId, playerName ->
+                    navController.navigate(Routes.playerCard(playerId, playerName))
+                }
             )
         }
 
@@ -125,8 +150,7 @@ fun HoopStarNavHost(
             popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(300)) }
         ) {
             HighlightsScreen(
-                onBack = { navController.popBackStack() },
-                onPlayReel = { url, name -> navController.navigate(Routes.player(url, name)) }
+                onBack = { navController.popBackStack() }
             )
         }
 

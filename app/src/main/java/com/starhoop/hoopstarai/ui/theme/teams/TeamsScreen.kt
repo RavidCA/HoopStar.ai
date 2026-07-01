@@ -25,9 +25,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.ui.window.Dialog
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -88,9 +89,9 @@ fun TeamsScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("הקבוצות שלי", style = MaterialTheme.typography.titleLarge)
+                        Text("My Teams", style = MaterialTheme.typography.titleLarge)
                         if (state.coachName.isNotBlank()) {
-                            Text("שלום, ${state.coachName}",
+                            Text("Hi, ${state.coachName}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -98,7 +99,7 @@ fun TeamsScreen(
                 },
                 actions = {
                     IconButton(onClick = { viewModel.logout(); onLoggedOut() }) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "התנתקות")
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Log out")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -113,7 +114,7 @@ fun TeamsScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("קבוצה חדשה") }
+                text = { Text("New Team") }
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -123,8 +124,8 @@ fun TeamsScreen(
                 is UiState.Loading -> ListSkeleton(rows = 5, rowHeight = 86.dp)
                 is UiState.Empty -> EmptyState(
                     icon = Icons.Default.Groups,
-                    title = "עדיין אין קבוצות",
-                    subtitle = "לחץ על \"קבוצה חדשה\" כדי להתחיל לבנות סגל."
+                    title = "No teams yet",
+                    subtitle = "Tap \"New Team\" to start building your roster."
                 )
                 is UiState.Error -> ErrorState(s.message, onRetry = viewModel::load)
                 is UiState.Success -> LazyColumn(
@@ -132,7 +133,11 @@ fun TeamsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(s.data, key = { it.teamId }) { team ->
-                        TeamCard(team) { onTeamClick(team.teamId) }
+                        TeamCard(
+                            team = team,
+                            onClick = { onTeamClick(team.teamId) },
+                            onDelete = { viewModel.requestHide(team) }
+                        )
                     }
                 }
             }
@@ -142,10 +147,26 @@ fun TeamsScreen(
     if (state.showCreate) {
         CreateTeamDialog(state.create, viewModel)
     }
+
+    state.confirmHide?.let { team ->
+        AlertDialog(
+            onDismissRequest = viewModel::cancelHide,
+            icon = { Icon(Icons.Default.Delete, contentDescription = null,
+                tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Remove Team") },
+            text = { Text("Remove \"${team.name}\" from your list? This hides it on this device — the team data stays on the server.") },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmHide) {
+                    Text("Remove", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = viewModel::cancelHide) { Text("Cancel") } }
+        )
+    }
 }
 
 @Composable
-private fun TeamCard(team: Team, onClick: () -> Unit) {
+private fun TeamCard(team: Team, onClick: () -> Unit, onDelete: () -> Unit) {
     val accent = parseHexColor(team.color)
     Row(
         modifier = Modifier
@@ -156,7 +177,6 @@ private fun TeamCard(team: Team, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.width(6.dp).height(86.dp).background(accent))
-        // סמל הקבוצה מצד ימין של הפס (תחילת הכרטיס ב-RTL)
         Box(
             Modifier.padding(start = 14.dp).size(46.dp).clip(CircleShape).background(accent.copy(alpha = 0.2f)),
             contentAlignment = Alignment.Center
@@ -170,12 +190,16 @@ private fun TeamCard(team: Team, onClick: () -> Unit) {
             Spacer(Modifier.height(4.dp))
             Text(
                 buildString {
-                    if (team.season.isNotBlank()) append("עונה ${team.season}  ·  ")
-                    append("${team.players.size} שחקנים")
+                    if (team.season.isNotBlank()) append("Season ${team.season}  ·  ")
+                    append("${team.players.size} players")
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+        IconButton(onClick = onDelete, modifier = Modifier.padding(end = 6.dp)) {
+            Icon(Icons.Default.Delete, contentDescription = "Delete team",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -187,33 +211,28 @@ private fun CreateTeamDialog(form: CreateTeamForm, viewModel: TeamsViewModel) {
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
             Column(
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp)
+                Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp)
             ) {
-                Text("קבוצה חדשה", style = MaterialTheme.typography.headlineMedium,
+                Text("New Team", style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(20.dp))
-                HoopTextField(form.name, viewModel::onName, "שם הקבוצה", isError = form.error != null)
+                HoopTextField(form.name, viewModel::onName, "Team Name", isError = form.error != null)
                 Spacer(Modifier.height(14.dp))
-                HoopTextField(form.season, viewModel::onSeason, "עונה")
+                HoopTextField(form.season, viewModel::onSeason, "Season")
 
                 Spacer(Modifier.height(20.dp))
-                Text("צבע הקבוצה", style = MaterialTheme.typography.titleMedium,
+                Text("Team Color", style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(12.dp))
                 ColorPalette(selected = form.color, onSelect = viewModel::onColor)
 
                 Spacer(Modifier.height(20.dp))
-                Text("סמל הקבוצה", style = MaterialTheme.typography.titleMedium,
+                Text("Team Logo", style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(12.dp))
                 LogoPalette(selected = form.logoId, accent = parseHexColor(form.color),
@@ -226,10 +245,10 @@ private fun CreateTeamDialog(form: CreateTeamForm, viewModel: TeamsViewModel) {
                 }
 
                 Spacer(Modifier.height(24.dp))
-                HoopPrimaryButton("צור קבוצה", viewModel::submitCreate, loading = form.loading)
+                HoopPrimaryButton("Create Team", viewModel::submitCreate, loading = form.loading)
                 Spacer(Modifier.height(4.dp))
                 TextButton(onClick = viewModel::closeCreate, modifier = Modifier.fillMaxWidth()) {
-                    Text("ביטול", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -245,22 +264,16 @@ private fun ColorPalette(selected: String, onSelect: (String) -> Unit) {
                     val color = parseHexColor(hex)
                     val isSelected = hex.equals(selected, ignoreCase = true)
                     Box(
-                        Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(color)
+                        Modifier.size(40.dp).clip(CircleShape).background(color)
                             .border(
                                 width = if (isSelected) 3.dp else 0.dp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                shape = CircleShape
+                                color = MaterialTheme.colorScheme.onSurface, shape = CircleShape
                             )
                             .clickable { onSelect(hex) },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (isSelected) {
-                            Icon(Icons.Default.Check, contentDescription = "נבחר",
-                                tint = readableTextOn(color))
-                        }
+                        if (isSelected) Icon(Icons.Default.Check, contentDescription = "Selected",
+                            tint = readableTextOn(color))
                     }
                 }
             }
@@ -276,25 +289,16 @@ private fun LogoPalette(selected: String, accent: Color, onSelect: (String) -> U
                 rowLogos.forEach { logo ->
                     val isSelected = logo.id == selected
                     Box(
-                        Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isSelected) accent.copy(alpha = 0.25f)
-                                else MaterialTheme.colorScheme.surfaceVariant
-                            )
-                            .border(
-                                width = if (isSelected) 2.dp else 0.dp,
-                                color = accent, shape = CircleShape
-                            )
+                        Modifier.size(48.dp).clip(CircleShape)
+                            .background(if (isSelected) accent.copy(alpha = 0.25f)
+                            else MaterialTheme.colorScheme.surfaceVariant)
+                            .border(width = if (isSelected) 2.dp else 0.dp, color = accent, shape = CircleShape)
                             .clickable { onSelect(logo.id) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            logo.icon, contentDescription = logo.id,
+                        Icon(logo.icon, contentDescription = logo.id,
                             tint = if (isSelected) accent else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(26.dp)
-                        )
+                            modifier = Modifier.size(26.dp))
                     }
                 }
             }

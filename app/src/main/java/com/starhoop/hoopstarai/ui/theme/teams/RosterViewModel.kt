@@ -99,12 +99,12 @@ class RosterViewModel @Inject constructor(
         val e = _state.value.editor ?: return
         val jersey = e.jersey.toIntOrNull()
         when {
-            e.fullName.isBlank() -> { updateEditor { it.copy(error = "יש להזין שם מלא.") }; return }
-            jersey == null || jersey !in 0..99 -> { updateEditor { it.copy(error = "מספר חולצה בין 0 ל-99.") }; return }
+            e.fullName.isBlank() -> { updateEditor { it.copy(error = "Please enter a full name") }; return }
+            jersey == null || jersey !in 0..99 -> { updateEditor { it.copy(error = "Jersey number must be 0-99.") }; return }
         }
         val birthYear = e.birthYear.takeIf { it.isNotBlank() }?.toIntOrNull()
         if (e.birthYear.isNotBlank() && birthYear == null) {
-            updateEditor { it.copy(error = "שנת לידה לא תקינה.") }; return
+            updateEditor { it.copy(error = "Invalid birth year.") }; return
         }
         val photo = e.photoUrl.trim().ifBlank { null }
         updateEditor { it.copy(loading = true, error = null) }

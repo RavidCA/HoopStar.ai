@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 /** מנתח שגיאות FastAPI: השדה "detail" יכול להיות String או מערך ולידציה. */
 object ApiErrorParser {
-    fun parse(errorBody: String?, fallback: String = "משהו השתבש."): String {
+    fun parse(errorBody: String?, fallback: String = "Something went wrong."): String {
         if (errorBody.isNullOrBlank()) return fallback
         return try {
             val json = JSONObject(errorBody)

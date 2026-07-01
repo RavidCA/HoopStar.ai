@@ -1,6 +1,9 @@
 package com.starhoop.hoopstar.ui.highlights
 
-import androidx.compose.animation.AnimatedVisibility
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,7 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MovieFilter
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -57,29 +62,30 @@ import com.starhoop.hoopstar.ui.components.PlayerAvatar
 @Composable
 fun HighlightsScreen(
     onBack: () -> Unit,
-    onPlayReel: (url: String, playerName: String) -> Unit,
     viewModel: HighlightsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val team = (state.roster as? UiState.Success)?.data
     val accent = parseHexColor(team?.color)
 
-    // כשמוכן — עוברים אוטומטית לנגן
-    LaunchedEffect(state.phase) {
-        if (state.phase == GenerationPhase.READY) {
-            state.playbackUrl?.let { url ->
-                onPlayReel(url, state.selectedPlayer?.fullName ?: "שחקן")
-            }
+    // בקשת הרשאת התראות (אנדרואיד 13+)
+    val notifPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* גם אם נדחה, החילוץ ימשיך — פשוט בלי התראה */ }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("היילייטים", style = MaterialTheme.typography.titleLarge) },
+                title = { Text("Highlights", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "חזרה")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -95,13 +101,13 @@ fun HighlightsScreen(
                 is UiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
-                is UiState.Empty -> EmptyState(Icons.Default.MovieFilter, "אין שחקנים",
-                    "צריך סגל כדי לייצר היילייטים.")
+                is UiState.Empty -> EmptyState(Icons.Default.MovieFilter, "No players",
+                    "You need a roster to generate highlights.")
                 is UiState.Error -> ErrorState(s.message, onRetry = viewModel::loadRoster)
                 is UiState.Success -> {
                     Column(Modifier.fillMaxSize()) {
                         Text(
-                            "בחר שחקן כדי לייצר לו ריל היילייטים:",
+                            "Select a player to generate their highlight reel:",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(16.dp)
@@ -125,20 +131,19 @@ fun HighlightsScreen(
         }
     }
 
-    // שכבת ייצור/שגיאה
-    if (state.phase != GenerationPhase.IDLE && state.selectedPlayer != null) {
-        GenerationOverlay(
-            phase = state.phase,
-            playerName = state.selectedPlayer!!.fullName,
-            errorMessage = state.errorMessage,
-            onRetry = viewModel::retry,
-            onDismiss = viewModel::clearSelection
+    // אחרי שליחה לרקע — מסך אישור שאפשר לצאת ממנו
+    if (state.started) {
+        StartedOverlay(
+            playerName = state.selectedPlayer?.fullName ?: "Player",
+            onDone = viewModel::clearSelection
         )
     } else if (state.selectedPlayer != null) {
-        // נבחר שחקן אבל עוד לא התחלנו — כפתור ייצור צף
-        Box(Modifier.fillMaxSize().padding(16.dp), Alignment.BottomCenter) {
+        Box(
+            Modifier.fillMaxSize().navigationBarsPadding().padding(16.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
             HoopPrimaryButton(
-                text = "ייצר ריל ל-${state.selectedPlayer!!.fullName}",
+                text = "Generate reel for ${state.selectedPlayer!!.fullName}",
                 onClick = viewModel::generate
             )
         }
@@ -151,9 +156,7 @@ private fun PlayerPickRow(player: Player, accent: Color, selected: Boolean, onCl
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(
-                if (selected) accent.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant
-            )
+            .background(if (selected) accent.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -164,69 +167,28 @@ private fun PlayerPickRow(player: Player, accent: Color, selected: Boolean, onCl
         Spacer(Modifier.width(12.dp))
         Text(player.fullName, style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-        if (selected) {
-            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = accent)
-        }
+        if (selected) Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = accent)
     }
 }
 
 @Composable
-private fun GenerationOverlay(
-    phase: GenerationPhase,
-    playerName: String,
-    errorMessage: String?,
-    onRetry: () -> Unit,
-    onDismiss: () -> Unit
-) {
+private fun StartedOverlay(playerName: String, onDone: () -> Unit) {
     Box(
-        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.82f)).padding(32.dp),
+        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).padding(32.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            when (phase) {
-                GenerationPhase.EXTRACTING, GenerationPhase.COMPOSING -> {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(64.dp), strokeWidth = 5.dp)
-                    Spacer(Modifier.height(24.dp))
-                    Text(
-                        if (phase == GenerationPhase.EXTRACTING) "מחלץ קליפים של $playerName..."
-                        else "מרכיב את הריל (אינטרו, מוזיקה)...",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White, textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text("זה לוקח כמה דקות — אל תסגור את המסך.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center)
-                }
-                GenerationPhase.NO_CLIPS -> {
-                    Icon(Icons.Default.MovieFilter, null, Modifier.size(72.dp),
-                        tint = Color.White.copy(alpha = 0.8f))
-                    Spacer(Modifier.height(20.dp))
-                    Text("אין היילייטים ל-$playerName", style = MaterialTheme.typography.titleLarge,
-                        color = Color.White, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(8.dp))
-                    Text("ה-AI לא מצא רגעים בולטים של השחקן הזה בסרטון.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(24.dp))
-                    OutlinedButton(onClick = onDismiss) { Text("בחר שחקן אחר") }
-                }
-                GenerationPhase.ERROR -> {
-                    Icon(Icons.Default.ErrorOutline, null, Modifier.size(72.dp),
-                        tint = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(20.dp))
-                    Text(errorMessage ?: "משהו השתבש", style = MaterialTheme.typography.titleMedium,
-                        color = Color.White, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(24.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(onClick = onDismiss) { Text("ביטול") }
-                        HoopPrimaryButton(text = "נסה שוב", onClick = onRetry,
-                            modifier = Modifier.width(140.dp))
-                    }
-                }
-                else -> Unit
-            }
+            Icon(Icons.Default.CheckCircle, null, Modifier.size(72.dp),
+                tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(20.dp))
+            Text("Generating in the background", style = MaterialTheme.typography.headlineMedium,
+                color = Color.White, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(10.dp))
+            Text("$playerName's reel is being created. You can leave the app — we'll notify you when it's ready, and it'll be saved to the player's card.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+            Spacer(Modifier.height(32.dp))
+            HoopPrimaryButton(text = "Got it", onClick = onDone, modifier = Modifier.width(200.dp))
         }
     }
 }
